@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>JobShield AI - Fake Job Post Detector</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ---------- SAME STYLES AS YOUR UI ---------- */
+
+        :root {
+            --bg-gradient: radial-gradient(circle at top left, #1f6feb, #0f172a 55%, #020617);
+            --card-bg: rgba(15, 23, 42, 0.9);
+            --accent: #38bdf8;
+            --text-main: #e5e7eb;
+            --text-muted: #9ca3af;
+            --danger: #f97373;
+            --success: #4ade80;
+            --border-subtle: rgba(148, 163, 184, 0.3);
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-gradient);
+            font-family: "Poppins", sans-serif;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .shell {
+            width: 100%;
+            max-width: 1080px;
+            background: rgba(15,23,42,0.75);
+            padding: 28px;
+            border-radius: 28px;
+            border: 1px solid rgba(148,163,184,0.3);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 160px;
+            border-radius: 16px;
+            background: rgba(15,23,42,0.75);
+            border: 1px solid var(--border-subtle);
+            padding: 12px;
+            color: var(--text-main);
+            resize: vertical;
+        }
+
+        input[type="file"] {
+            margin-top: 8px;
+            color: var(--text-muted);
+        }
+
+        .btn-primary {
+            padding: 9px 16px;
+            background: linear-gradient(120deg, #38bdf8, #6366f1);
+            border-radius: 999px;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .result-card {
+            margin-top: 12px;
+            border-radius: 16px;
+            padding: 12px;
+            border: 1px solid rgba(148,163,184,0.4);
+            background: rgba(15,23,42,0.9);
+        }
+
+        .result-badge {
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            display: inline-flex;
+            gap: 6px;
+        }
+
+        .fake { background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.4); color: #fecaca; }
+        .real { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4); color: #bbf7d0; }
+
+        .model-pill {
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(15,23,42,0.9);
+            border: 1px solid rgba(148,163,184,0.4);
+            margin-right: 6px;
+            font-size: 11px;
+        }
+
+        .ocr-box {
+            white-space: pre-wrap;
+            padding: 8px;
+            border-radius: 12px;
+            background: rgba(15,23,42,0.6);
+            border: 1px solid rgba(148,163,184,0.3);
+            margin-top: 8px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="shell">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+        <div>
+            <h1 style="margin-bottom:4px;">JobShield AI</h1>
+            <p style="color:var(--text-muted); margin-top:0;">Detecting Fake Job Posts using NLP + OCR</p>
+            <a href="/dashboard" style="color:var(--accent); margin-top:6px; display:inline-block;">View dashboard</a>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div style="text-align:right;">
+                {% if user_name %}
+                    <div style="color:var(--text-muted);">Hello, <strong>{{ user_name }}</strong></div>
+                    <a href="/logout" style="color:var(--accent); text-decoration:none;">Logout</a>
+                {% else %}
+                    <a href="/login" style="color:var(--accent); margin-right:12px;">Login</a>
+                    <a href="/signup" style="color:var(--accent);">Sign up</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <hr style="border-color:rgba(255,255,255,0.06); margin:18px 0;">
+
+    <div style="display:flex;gap:18px;align-items:flex-start;">
+        <div style="flex:1;">
+            <div style="background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02)); padding:20px; border-radius:16px;">
+                <h2 style="margin-top:0;">Analyze job posts instantly</h2>
+                <p style="color:var(--text-muted);">Paste job description text or upload an image to detect if a post is likely fake or real using our ensemble model.</p>
+
+                <textarea id="jobText" placeholder="Paste a job description here..." style="width:100%;min-height:120px;border-radius:12px;padding:12px;margin-top:12px;background:rgba(15,23,42,0.7);border:1px solid rgba(148,163,184,0.08); color:var(--text-main);"></textarea>
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                    <button class="btn-primary" onclick="analyzeText()">Analyze Text</button>
+                    <label class="btn-primary" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(90deg,#34d399,#06b6d4);cursor:pointer;padding:9px 12px;border-radius:999px;color:#fff;">
+                        Upload Image
+                        <input id="imgInput" type="file" accept="image/*" style="display:none;" onchange="handleImageChange(this)" />
+                    </label>
+                </div>
+
+                <div id="textResult" class="result-card" style="display:none;margin-top:12px;"></div>
+            </div>
+        </div>
+
+        <div style="width:360px;">
+            <div style="background:rgba(15,23,42,0.7); padding:18px; border-radius:16px;">
+                <h3 style="margin-top:0;">Quick Stats</h3>
+                <div id="ms-preds" style="font-size:28px;">0</div>
+                <div style="margin-top:12px;color:var(--text-muted);">Predictions • Fakes • Users</div>
+                <div style="display:flex;gap:8px;margin-top:12px;">
+                    <a href="/text-predict" class="btn-primary">Try full text tool</a>
+                    <a href="/dashboard" class="btn-primary" style="background:linear-gradient(90deg,#a78bfa,#06b6d4);">Dashboard</a>
+                </div>
+            </div>
+
+            <div id="imgTextBox" class="ocr-box" style="display:none;margin-top:12px;"></div>
+            <div id="imgResult" class="result-card" style="display:none;margin-top:12px;"></div>
+        </div>
+    </div>
+
+    <script>
+    function handleImageChange(el){
+        // keep existing flow that reads file on analyzeImage
+    }
+    async function loadMiniStats(){
+        const res = await fetch('/api/dashboard/stats');
+        if(!res.ok) return;
+        const data = await res.json();
+        document.getElementById('ms-preds').textContent = data.total_predictions;
+        document.getElementById('ms-fakes').textContent = data.fake_count;
+    }
+    loadMiniStats();
+    </script>
+
+    <!-- TEXT INPUT -->
+    <h2>Analyze Text</h2>
+
+    <textarea id="jobText" placeholder="Paste a job description here..."></textarea>
+    <button class="btn-primary" onclick="analyzeText()">Analyze Text</button>
+
+    <div id="textResult" class="result-card" style="display:none;"></div>
+
+
+    <hr style="border-color:rgba(255,255,255,0.1); margin:32px 0;">
+
+    <!-- IMAGE INPUT -->
+    <h2>Analyze Image (OCR)</h2>
+
+    <input type="file" id="imgInput" accept="image/*">
+    <button class="btn-primary" onclick="analyzeImage()">Upload & Analyze Image</button>
+
+    <div id="imgTextBox" class="ocr-box" style="display:none;"></div>
+    <div id="imgResult" class="result-card" style="display:none;"></div>
+
+</div>
+
+
+<script>
+/* -------------------------
+   TEXT ANALYSIS
+-------------------------- */
+async function analyzeText() {
+    const text = document.getElementById("jobText").value.trim();
+    const resultDiv = document.getElementById("textResult");
+
+    if (!text) {
+        resultDiv.style.display = "block";
+        resultDiv.innerHTML = `<span style='color:#fecaca'>Please enter text.</span>`;
+        return;
+    }
+
+    const res = await fetch("/predict", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ text })
+    });
+
+    const data = await res.json();
+
+    showResult(resultDiv, data);
+}
+
+
+/* -------------------------
+   IMAGE + OCR ANALYSIS
+-------------------------- */
+async function analyzeImage() {
+    const fileInput = document.getElementById("imgInput");
+    const imgResultDiv = document.getElementById("imgResult");
+    const ocrBox = document.getElementById("imgTextBox");
+
+    if (!fileInput.files.length) {
+        imgResultDiv.style.display = "block";
+        imgResultDiv.innerHTML = `<span style='color:#fecaca'>Please upload an image.</span>`;
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    const res = await fetch("/predict_img", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+        imgResultDiv.style.display = "block";
+        imgResultDiv.innerHTML = `<span style='color:#fecaca'>${data.error}</span>`;
+        return;
+    }
+
+    // OCR TEXT DISPLAY
+    ocrBox.style.display = "block";
+    ocrBox.textContent = "Extracted Text:\n\n" + data.extracted_text;
+
+    // Show model results
+    showResult(imgResultDiv, data);
+}
+
+
+/* -------------------------
+   REUSABLE RESULT UI
+-------------------------- */
+function showResult(div, data) {
+    div.style.display = "block";
+
+    // helper to normalize model outputs (handles number or string labels)
+    const parseLabel = (v) => {
+        if (typeof v === 'number') return v === 1 ? 'Fake' : 'Real';
+        if (typeof v === 'string') return v.toLowerCase().includes('fake') ? 'Fake' : 'Real';
+        return 'Real';
+    }
+
+    // Backend returns labels, probs and recommended decision
+    const lrLabel = parseLabel(data.logistic ?? data.logreg ?? data.logistic_regression);
+    const nbLabel = parseLabel(data.naive_bayes);
+    const lrProb = data.logistic_prob ?? null;
+    const nbProb = data.naive_prob ?? null;
+    const combined = data.combined_score ?? null;
+    const recommended = data.recommended ?? (combined >= (data.threshold ?? 0.5) ? 'Fake Job' : 'Real Job');
+
+    const isFake = recommended.toLowerCase().includes('fake');
+
+    const formatProb = (p) => p == null ? 'n/a' : Math.round(p*1000)/10 + '%';
+
+    div.innerHTML = `
+        <div class="result-badge ${isFake ? "fake" : "real"}">
+            ${isFake ? "⚠️ Possible Fake Job" : "✅ Likely Real Job"}
+        </div>
+
+        <div style="margin-top:10px;">
+            <span class="model-pill ${lrLabel === 'Fake' ? "fake" : "real"}">LR: ${lrLabel} (${formatProb(lrProb)})</span>
+            <span class="model-pill ${nbLabel === 'Fake' ? "fake" : "real"}">NB: ${nbLabel} (${formatProb(nbProb)})</span>
+        </div>
+
+        <div style="margin-top:10px; font-size:12px; color:var(--text-muted);">
+            Recommended: <strong>${recommended}</strong> (combined: ${combined ? Math.round(combined*1000)/10 + '%' : 'n/a'}; threshold: ${data.threshold ?? 0.5})
+            ${data.override_reason ? '<div style="margin-top:6px;color:#fca5a5;font-size:12px;">Override: ' + data.override_reason + '</div>' : ''}
+        </div>
+    `; 
+}
+</script>
+
+</body>
+</html>

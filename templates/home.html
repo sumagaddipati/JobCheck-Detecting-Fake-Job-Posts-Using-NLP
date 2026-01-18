@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-6">Analyze Job Post</h1>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+  <!-- TEXT ANALYSIS -->
+  <form method="POST" class="bg-slate-900 p-6 rounded-xl border border-slate-800">
+    <h2 class="text-xl font-semibold mb-3">Analyze Text</h2>
+
+    <textarea name="job_text"
+      class="w-full h-40 bg-slate-950 p-4 rounded border border-slate-700 mb-4"
+      placeholder="Paste job description here..."></textarea>
+
+    <button class="bg-green-600 hover:bg-green-700 px-6 py-2 rounded font-semibold">
+      Analyze Text
+    </button>
+  </form>
+
+  <!-- IMAGE ANALYSIS -->
+  <form method="POST" enctype="multipart/form-data"
+        class="bg-slate-900 p-6 rounded-xl border border-slate-800">
+    <h2 class="text-xl font-semibold mb-3">Analyze Image (OCR)</h2>
+
+    <input type="file" name="job_image"
+           class="mb-2 block text-sm text-slate-300">
+
+    <p class="text-xs text-slate-400 mb-4">
+      Upload an image containing job details (poster, screenshot, etc.)
+    </p>
+
+    <button class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded font-semibold">
+      Analyze Image
+    </button>
+  </form>
+
+</div>
+
+<!-- ================= RESULT ================= -->
+{% if result %}
+<div class="mt-8 bg-slate-900 p-6 rounded-xl border border-slate-800">
+
+  <!-- FINAL RESULT -->
+  <h2 class="text-2xl font-bold mb-2
+      {% if result == 'FAKE JOB' %} text-red-400 {% else %} text-green-400 {% endif %}">
+    {{ result }}
+  </h2>
+
+  <div class="mt-6 p-4 bg-slate-800 rounded-lg border border-slate-700">
+  <p class="text-sm text-slate-300 mb-3">
+    Was this prediction helpful?
+  </p>
+
+  <div class="flex gap-4">
+    <a href="/feedback/{{ prediction_id }}/UP"
+       class="flex items-center gap-2 px-4 py-2 rounded-full
+              bg-green-500/20 text-green-400 hover:bg-green-500/30
+              transition font-semibold">
+      👍 Yes
+    </a>
+
+    <a href="/feedback/{{ prediction_id }}/DOWN"
+       class="flex items-center gap-2 px-4 py-2 rounded-full
+              bg-red-500/20 text-red-400 hover:bg-red-500/30
+              transition font-semibold">
+      👎 No
+    </a>
+  </div>
+</div>
+
+
+<br/>
+  <p class="mb-2 text-slate-300">
+    <b>Confidence:</b> {{ confidence }}%
+  </p>
+
+  <!-- RISK LEVEL + SCORE -->
+  {% if risk_level %}
+  <div class="flex items-center gap-4 mt-3">
+
+    <span class="px-4 py-1 rounded-full text-sm font-semibold
+      {% if risk_level == 'High Risk' %}
+        bg-red-500/20 text-red-400
+      {% elif risk_level == 'Medium Risk' %}
+        bg-yellow-500/20 text-yellow-400
+      {% else %}
+        bg-green-500/20 text-green-400
+      {% endif %}
+    ">
+      {{ risk_level }}
+    </span>
+
+    <span class="text-sm text-slate-400">
+      Risk Score: <b>{{ risk_score }}</b>
+    </span>
+
+  </div>
+  {% endif %}
+
+  <!-- EXPLANATION -->
+  {% if reasons %}
+  <div class="mt-5">
+    <h3 class="text-sm font-semibold mb-2 text-slate-300">
+      Why this result?
+    </h3>
+
+    <ul class="list-disc list-inside text-sm text-slate-400 space-y-1">
+      {% for r in reasons %}
+        <li>{{ r }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+</div>
+{% endif %}
+
+{% endblock %}

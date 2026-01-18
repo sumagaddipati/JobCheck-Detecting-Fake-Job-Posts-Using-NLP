@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-8">Admin Analytics</h1>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+  <!-- Fake vs Real -->
+  <div class="bg-slate-900 p-6 rounded-xl border border-slate-800">
+    <h2 class="text-sm text-slate-400 mb-3">Fake vs Real Jobs</h2>
+    <div class="h-64">
+      <canvas id="fakeRealChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Daily Predictions -->
+  <div class="bg-slate-900 p-6 rounded-xl border border-slate-800">
+    <h2 class="text-sm text-slate-400 mb-3">Daily Prediction Logs</h2>
+    <div class="h-64">
+      <canvas id="dailyChart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  const fakeCount = Number("{{ fake }}");
+  const realCount = Number("{{ real }}");
+
+  const days = {{ days | tojson }};
+  const counts = {{ counts | tojson }};
+
+  // Fake vs Real
+  new Chart(document.getElementById("fakeRealChart"), {
+    type: "doughnut",
+    data: {
+      labels: ["Fake", "Real"],
+      datasets: [{
+        data: [fakeCount, realCount],
+        backgroundColor: ["#ef4444", "#22c55e"],
+        borderColor: "#020617",
+        borderWidth: 2
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      cutout: "55%"
+    }
+  });
+
+  // Daily prediction logs (REAL DATA)
+  new Chart(document.getElementById("dailyChart"), {
+    type: "bar",
+    data: {
+      labels: days,
+      datasets: [{
+        label: "Predictions",
+        data: counts,
+        backgroundColor: "#38bdf8",
+        borderRadius: 6
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      scales: {
+        x: { ticks: { color: "#94a3b8" } },
+        y: { ticks: { color: "#94a3b8" } }
+      }
+    }
+  });
+</script>
+
+{% endblock %}

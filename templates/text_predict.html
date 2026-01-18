@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>JobShield AI – Analysis</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-black text-white min-h-screen flex flex-col items-center p-10">
+
+<h1 class="text-3xl font-bold mb-6">Job Post Analysis</h1>
+
+<!-- ================= TEXT FORM ================= -->
+<form method="POST" class="w-full max-w-3xl mb-10">
+  <h2 class="text-xl mb-2">Analyze Text</h2>
+
+  <textarea
+    name="job_text"
+    class="w-full h-40 p-4 bg-gray-900 rounded mb-4"
+    placeholder="Paste job description here..."
+    required></textarea>
+
+  <button class="bg-blue-600 px-6 py-3 rounded">
+    Analyze Text
+  </button>
+</form>
+
+<!-- ================= IMAGE FORM ================= -->
+<form method="POST" enctype="multipart/form-data" class="w-full max-w-3xl mb-10">
+  <h2 class="text-xl mb-2">Analyze Image (OCR)</h2>
+
+  <input
+    type="file"
+    name="job_image"
+    accept="image/*"
+    class="mb-4 text-white">
+
+  <br>
+  <button class="bg-purple-600 px-6 py-3 rounded">
+    Analyze Image
+  </button>
+</form>
+
+<!-- ================= RESULT ================= -->
+{% if result %}
+<div class="w-full max-w-3xl bg-gray-900 p-6 rounded mb-6">
+  <h2 class="text-2xl font-bold mb-2">{{ result }}</h2>
+  <p>Confidence: {{ confidence }}%</p>
+  <p>Logistic Regression: {{ lr }}</p>
+  <p>Naive Bayes: {{ nb }}</p>
+</div>
+{% endif %}
+
+<!-- ================= OCR TEXT ================= -->
+{% if extracted_text %}
+<div class="w-full max-w-3xl bg-gray-800 p-6 rounded">
+  <h3 class="text-lg font-bold mb-2">Extracted Text from Image</h3>
+  <pre class="text-sm whitespace-pre-wrap">{{ extracted_text }}</pre>
+</div>
+{% endif %}
+
+</body>
+</html>
+afrom flask import Flask, render_template, request, redirect, session
+import pickle, json
+import mysql.connector
+from scipy.sparse import hstack, csr_matrix
+import pytesseract
+from PIL import Image
+import io
+
+app = Flask(__name__)
+app.secret_key = "jobshield_secret"
+
+# =============================
+# TESSERACT PATH (WINDOWS)
+# =============================
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+# =============================
+# DATABASE
+# =============================
+def get_db():
+    return mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="YOUR_MYSQL_PASSWORD",
+        database="postanalyser"
+    )
+
+# =============================
+# LOAD MODELS
+# =============================
+logreg = pickle.load(open("models/logistic_model.pkl", "rb"))
+nb = pickle.load(open("models/naive_bayes_model.pkl", "rb"))
+tfidf = pickle.load(open("models/tfidf_vectorizer.pkl", "rb"))
+
+with open("models/keywords.json", "r") as f:
+    keywords = json.load(f)
+
+# =============================
+# FEATURE BUILDER (DO NOT TOUCH)
+# =============================
+def make_feature_vector(text):
+    tfidf_vec = tfidf.transform([text])
+    keyword_features = [1 if kw.lower() in text.lower() else 0 for kw in keywords]
+    return hstack([tfidf_vec, csr_matrix([keyword_features])])
+
+# =============================
+# LOGIN
+# =============================
+@app.route("/login", methods=["GET","POST"])
+def login():
+    if request.method == "POST":
+        db = get_db()
+        cur = db.cursor(dictionary=True)
+        cur.execute(
+            "SELECT * FROM users WHERE email=%s AND password=%s",
+            (request.form["email"], request.form["password"])
+        )
+        user = cur.fetchone()
+        if user:
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
+            return redirect("/")
+    return render_template("login.html")
+
+# =============================
+# SIGNUP
+# =============================
+@app.route("/signup", methods=["GET","POST"])
+def signup():
+    if request.method == "POST":
+        db = get_db()
+        cur = db.cursor()
+        cur.execute(
+            "INSERT INTO users(username,email,password) VALUES(%s,%s,%s)",
+            (request.form["username"], request.form["email"], request.form["password"])
+        )
+        db.commit()
+        return redirect("/login")
+    return render_template("signup.html")
+
+# =============================
+# LOGOUT
+# =============================
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
+# =============================
+# MAIN ANALYZE PAGE
+# =============================
+@app.route("/", methods=["GET","POST"])
+def home():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    result = confidence = lr_out = nb_out = extracted_text = None
+
+    # ---- TEXT ----
+    if request.method == "POST" and "job_text" in request.form:
+        text = request.form["job_text"]
+        X = make_feature_vector(text)
+
+        lr_pred = logreg.predict(X)[0]
+        nb_pred = nb.predict(X)[0]
+
+        lr_out = "Fake" if lr_pred == 1 else "Real"
+        nb_out = "Fake" if nb_pred == 1 else "Real"
+
+        result = "FAKE JOB" if (lr_pred + nb_pred) == 2 else "REAL JOB"
+        confidence = round(max(logreg.predict_proba(X)[0]) * 100, 2)
+
+        db = get_db()
+        cur = db.cursor()
+        cur.execute(
+            "INSERT INTO predictions(user_id,input_type,job_text,result,confidence) VALUES(%s,%s,%s,%s,%s)",
+            (session["user_id"], "text", text, result, confidence)
+        )
+        db.commit()
+
+    # ---- IMAGE ----
+    if request.method == "POST" and "job_image" in request.files:
+        img = request.files["job_image"]
+        image = Image.open(io.BytesIO(img.read()))
+        extracted_text = pytesseract.image_to_string(image)
+
+        X = make_feature_vector(extracted_text)
+
+        lr_pred = logreg.predict(X)[0]
+        nb_pred = nb.predict(X)[0]
+
+        lr_out = "Fake" if lr_pred == 1 else "Real"
+        nb_out = "Fake" if nb_pred == 1 else "Real"
+
+        result = "FAKE JOB" if (lr_pred + nb_pred) == 2 else "REAL JOB"
+        confidence = round(max(logreg.predict_proba(X)[0]) * 100, 2)
+
+        db = get_db()
+        cur = db.cursor()
+        cur.execute(
+            "INSERT INTO predictions(user_id,input_type,job_text,result,confidence) VALUES(%s,%s,%s,%s,%s)",
+            (session["user_id"], "image", extracted_text, result, confidence)
+        )
+        db.commit()
+
+    return render_template(
+        "home.html",
+        username=session["username"],
+        result=result,
+        confidence=confidence,
+        lr=lr_out,
+        nb=nb_out,
+        extracted_text=extracted_text
+    )
+
+# =============================
+# DASHBOARD
+# =============================
+@app.route("/dashboard")
+def dashboard():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    db = get_db()
+    cur = db.cursor(dictionary=True)
+    cur.execute(
+        "SELECT COUNT(*) c FROM predictions WHERE user_id=%s",
+        (session["user_id"],)
+    )
+    total = cur.fetchone()["c"]
+
+    cur.execute(
+        "SELECT COUNT(*) c FROM predictions WHERE user_id=%s AND result='FAKE JOB'",
+        (session["user_id"],)
+    )
+    fake = cur.fetchone()["c"]
+
+    return render_template(
+        "dashboard.html",
+        username=session["username"],
+        total=total,
+        fake=fake
+    )
+
+if __name__ == "__main__":
+    app.run(debug=True)

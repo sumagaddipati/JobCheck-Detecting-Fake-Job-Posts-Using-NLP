@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Verify Account</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-black via-gray-900 to-purple-900 flex items-center justify-center">
+<div class="bg-black/70 p-8 rounded shadow-md w-[420px] text-white">
+  <h1 class="text-2xl font-bold mb-4">Verify your account</h1>
+  {% if request.args.get('error') == 'missing' %}
+    <div class="text-sm text-red-400 mb-3">Please enter the verification code.</div>
+  {% elif request.args.get('error') == 'invalid' %}
+    <div class="text-sm text-red-400 mb-3">Invalid code. Try again.</div>
+  {% elif request.args.get('error') == 'mailfail' %}
+    <div class="text-sm text-red-400 mb-3">Unable to send verification email. Please try again later.</div>
+  {% endif %}
+
+  <form method="POST" action="/verify">
+    <input name="email" value="{{ email }}" placeholder="Email" class="w-full mb-3 p-3 bg-gray-900 rounded border border-gray-700" />
+    <input name="code" placeholder="Verification code" class="w-full mb-3 p-3 bg-gray-900 rounded border border-gray-700" />
+    <button class="w-full bg-purple-600 p-3 rounded">Verify</button>
+  </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Users | JobShield AI</title>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #e5e7eb;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            padding: 30px;
+        }
+        h1 {
+            color: #22c55e;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #1e293b;
+            text-align: left;
+        }
+        th {
+            color: #94a3b8;
+        }
+        tr:hover {
+            background-color: #020617;
+        }
+        .btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .promote {
+            background-color: #22c55e;
+            color: #022c22;
+        }
+        .demote {
+            background-color: #ef4444;
+            color: white;
+        }
+        a {
+            color: #22c55e;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Manage Users</h1>
+    <p>Promote or demote users</p>
+
+    <table>
+        <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Action</th>
+        </tr>
+
+        {% for u in users %}
+        <tr>
+            <td>{{ u.username }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.role }}</td>
+            <td>
+                {% if u.role == "USER" %}
+                    <a class="btn promote" href="/admin/promote/{{ u.id }}">Promote</a>
+                {% else %}
+                    <a class="btn demote" href="/admin/demote/{{ u.id }}">Demote</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <p style="margin-top:20px;">
+        <a href="/admin">Back to Admin Dashboard</a>
+    </p>
+</div>
+
+</body>
+</html>

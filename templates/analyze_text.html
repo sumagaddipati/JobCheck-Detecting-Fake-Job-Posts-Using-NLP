@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Analyze Job | JobShield AI</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-black text-white min-h-screen px-10 py-10">
+
+<h2 class="text-3xl font-bold mb-6">Analyze Job Description</h2>
+
+<textarea id="text" class="w-full h-48 p-4 bg-gray-900 rounded mb-4"
+placeholder="Paste job description here..."></textarea>
+
+<button onclick="analyze()" class="bg-blue-600 px-6 py-3 rounded">
+Analyze
+</button>
+
+<div id="result" class="mt-6"></div>
+
+<script>
+async function analyze(){
+ const r = await fetch("/predict",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({text:document.getElementById("text").value})
+ })
+ const d = await r.json()
+ document.getElementById("result").innerHTML =
+ `<div class="mt-4 p-4 bg-gray-900 rounded">
+  LR: ${d.lr} | NB: ${d.nb}<br>
+  <b class="text-xl">${d.final}</b><br>
+  Confidence: ${d.confidence}%
+ </div>`
+}
+</script>
+
+</body>
+</html>

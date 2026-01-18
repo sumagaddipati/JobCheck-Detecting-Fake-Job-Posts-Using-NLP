@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block content %}
+
+{# ---------- DERIVED VALUES ---------- #}
+{% set total_admins = users | selectattr("role", "equalto", "ADMIN") | list | length %}
+{% set fake_percent = (fake * 100 / total_preds) | round(1) if total_preds else 0 %}
+{% set real_percent = (real * 100 / total_preds) | round(1) if total_preds else 0 %}
+
+
+
+<div class="flex justify-between items-center mb-8">
+  <h1 class="text-3xl font-bold text-green-400">Admin Dashboard</h1>
+
+  <!-- BUTTON GROUP -->
+  <div class="flex gap-4">
+    <a href="/admin/analytics"
+       class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700
+              text-white font-semibold text-sm flex items-center gap-2">
+      📊 View Analytics
+    </a>
+
+    <a href="/admin/retrain"
+       class="px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-700
+              text-white font-semibold text-sm flex items-center gap-2">
+      🔁 Retrain Model
+    </a>
+  </div>
+</div>
+
+
+
+<!-- ================= TOP STATS ================= -->
+<div class="grid grid-cols-1 md:grid-cols-6 gap-6 mb-10">
+
+  <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 text-center">
+    <p class="text-slate-400">Total Users</p>
+    <h2 class="text-3xl font-bold mt-2">{{ total_users }}</h2>
+  </div>
+
+  <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 text-center">
+    <p class="text-slate-400">Total Admins</p>
+    <h2 class="text-3xl font-bold mt-2 text-green-400">{{ total_admins }}</h2>
+  </div>
+
+  <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 text-center">
+    <p class="text-slate-400">Total Predictions</p>
+    <h2 class="text-3xl font-bold mt-2">{{ total_preds }}</h2>
+  </div>
+
+  <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 text-center">
+    <p class="text-slate-400">Fake Jobs</p>
+    <h2 class="text-3xl font-bold mt-2 text-red-400">
+      {{ fake }} <span class="text-sm">({{ fake_percent }}%)</span>
+    </h2>
+  </div>
+
+  <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 text-center">
+    <p class="text-slate-400">Real Jobs</p>
+    <h2 class="text-3xl font-bold mt-2 text-green-400">
+      {{ real }} <span class="text-sm">({{ real_percent }}%)</span>
+    </h2>
+  </div>
+
+  <!-- ✅ FLAGGED PREDICTIONS (SEPARATE, COMPACT) -->
+  <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 text-center">
+    <p class="text-slate-400 text-sm">🚩 Flagged</p>
+    <h2 class="text-2xl font-bold mt-2 text-red-400">{{ flagged }}</h2>
+  </div>
+
+</div>
+
+<!-- ================= FEEDBACK STATS ================= -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+
+  <div class="bg-slate-900 p-6 rounded-xl border border-slate-800
+              flex items-center gap-4 hover:scale-[1.02] transition">
+    <div class="text-4xl">👍</div>
+    <div>
+      <p class="text-slate-400 text-sm">Positive Feedback</p>
+      <h2 class="text-2xl font-bold text-green-400">{{ fb_up }}</h2>
+    </div>
+  </div>
+
+  <div class="bg-slate-900 p-6 rounded-xl border border-slate-800
+              flex items-center gap-4 hover:scale-[1.02] transition">
+    <div class="text-4xl">👎</div>
+    <div>
+      <p class="text-slate-400 text-sm">Negative Feedback</p>
+      <h2 class="text-2xl font-bold text-red-400">{{ fb_down }}</h2>
+    </div>
+  </div>
+
+  <div class="bg-slate-900 p-6 rounded-xl border border-slate-800
+              flex items-center gap-4 hover:scale-[1.02] transition">
+    <div class="text-4xl">🎯</div>
+    <div>
+      <p class="text-slate-400 text-sm">Feedback Accuracy</p>
+      <h2 class="text-2xl font-bold text-blue-400">{{ fb_accuracy }}%</h2>
+    </div>
+  </div>
+
+</div>
+
+<!-- ================= USERS TABLE ================= -->
+<h2 class="text-xl font-semibold mb-4">Users (Last Login)</h2>
+
+<table class="w-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800">
+  <tr class="text-slate-400 border-b border-slate-800">
+    <th class="p-4">ID</th>
+    <th class="p-4">Username</th>
+    <th class="p-4">Email</th>
+    <th class="p-4">Last Login</th>
+    <th class="p-4">Role</th>
+    <th class="p-4">Action</th>
+  </tr>
+
+  {% for u in users %}
+  <tr class="border-b border-slate-800 hover:bg-slate-800">
+    <td class="p-4">{{ u.id }}</td>
+    <td class="p-4">{{ u.username }}</td>
+    <td class="p-4">{{ u.email }}</td>
+    <td class="p-4">{{ u.last_login or "-" }}</td>
+    <td class="p-4">{{ u.role }}</td>
+    <td class="p-4">
+      {% if u.role == "USER" %}
+        <a href="/admin/promote/{{ u.id }}" class="text-green-400 font-semibold">
+          Promote
+        </a>
+      {% else %}
+        <a href="/admin/demote/{{ u.id }}" class="text-red-400 font-semibold">
+          Demote
+        </a>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% endblock %}

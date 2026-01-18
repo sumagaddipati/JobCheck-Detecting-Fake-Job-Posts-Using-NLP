@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-1">My Profile</h1>
+<p class="text-slate-400 text-sm mb-6">
+  View your account information and access details.
+</p>
+
+<div class="max-w-xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800
+            p-6 rounded-2xl border border-slate-800 shadow-xl">
+
+  <!-- PROFILE HEADER -->
+  <div class="flex items-center gap-4 mb-6">
+
+    <div class="w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-emerald-600
+                flex items-center justify-center text-xl font-bold text-black">
+      {{ username[0]|upper }}
+    </div>
+
+    <div>
+      <p class="text-xl font-semibold text-white">{{ username }}</p>
+      <p class="text-sm text-slate-400">{{ email }}</p>
+
+      <p class="text-slate-400 text-sm mt-1">
+        Role:
+        {% if role == "SUPERADMIN" %}
+          <span class="text-purple-400 font-semibold">SUPER ADMIN</span>
+        {% elif role == "ADMIN" %}
+          <span class="text-green-400 font-semibold">ADMIN</span>
+        {% else %}
+          <span class="text-blue-400 font-semibold">USER</span>
+        {% endif %}
+      </p>
+
+      <p class="text-slate-400 text-sm">
+        Last Login: {{ last_login }}
+      </p>
+    </div>
+  </div>
+
+  <!-- DETAILS -->
+  <div class="space-y-3">
+    <div class="flex justify-between items-center border-t border-slate-800 pt-3">
+      <span class="text-slate-400 text-sm">Account Type</span>
+
+      {% if role == "SUPERADMIN" %}
+        <span class="px-3 py-1 rounded-full text-sm font-semibold
+                     bg-purple-500/10 text-purple-400">
+          System Owner
+        </span>
+      {% elif role == "ADMIN" %}
+        <span class="px-3 py-1 rounded-full text-sm font-semibold
+                     bg-green-500/10 text-green-400">
+          Administrator
+        </span>
+      {% else %}
+        <span class="px-3 py-1 rounded-full text-sm font-semibold
+                     bg-blue-500/10 text-blue-400">
+          Standard User
+        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- INFO -->
+  <p class="text-slate-400 text-sm mt-5 leading-relaxed">
+    This account allows you to analyze job postings, view confidence scores,
+    manage access based on role, and download prediction reports.
+  </p>
+</div>
+
+<p class="text-xs text-slate-500 mt-4 max-w-xl">
+  For security reasons, profile details cannot be edited directly.
+  Please contact support if changes are required.
+</p>
+
+{% endblock %}
