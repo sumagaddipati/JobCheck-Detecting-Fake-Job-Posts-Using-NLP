@@ -167,11 +167,11 @@ def github_callback():
 # =============================
 def get_db():
     return mysql.connector.connect(
-        host="switchback.proxy.rlwy.net",
+        host="shinkansen.proxy.rlwy.net",
         user="root",
-        password="ehDbnrpKMGszoMKfdOfKagBQQEYuHolC",
+        password="zTISqMkoDjvgBrLYTqZIwQZKZmoMssqy",
         database="railway",
-        port=26379
+        port=37019
     )
 
 # =============================
