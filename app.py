@@ -167,10 +167,11 @@ def github_callback():
 # =============================
 def get_db():
     return mysql.connector.connect(
-        host="localhost",
+        host="switchback.proxy.rlwy.net",
         user="root",
-        password="Suma@1321",
-        database="postanalyser"
+        password="ehDbnrpKMGszoMKfdOfKagBQQEYuHolC",
+        database="railway",
+        port=26379
     )
 
 # =============================
@@ -699,30 +700,43 @@ def dashboard():
 
 @app.route("/admin/retrain")
 def retrain_model():
+
     if "user_id" not in session or session.get("role") not in ["ADMIN", "SUPERADMIN"]:
         return redirect("/login")
 
     db = get_db()
     cur = db.cursor(dictionary=True)
 
-    # Count total predictions
-    cur.execute("SELECT COUNT(*) c FROM predictions")
-    total = cur.fetchone()["c"]
+    # total predictions
+    cur.execute("SELECT COUNT(*) AS c FROM predictions")
+    total_predictions = cur.fetchone()["c"]
 
-    # Count flagged predictions (thumbs down)
-    cur.execute("SELECT COUNT(*) c FROM predictions WHERE feedback='DOWN'")
-    flagged = cur.fetchone()["c"]
-
-    # Store retrain log
+    # flagged predictions
     cur.execute("""
-        INSERT INTO retrain_logs (admin_id, total_predictions, flagged_predictions)
+        SELECT COUNT(*) AS c
+        FROM feedback
+        WHERE feedback = 'DOWN'
+    """)
+    flagged_predictions = cur.fetchone()["c"]
+
+    # INSERT LOG (NO created_at in SQL)
+    cur.execute("""
+        INSERT INTO retrain_log (
+            admin_id,
+            total_predictions,
+            flagged_predictions
+        )
         VALUES (%s, %s, %s)
-    """, (session["user_id"], total, flagged))
+    """, (
+        session["user_id"],
+        total_predictions,
+        flagged_predictions
+    ))
+
     db.commit()
 
-    flash("Model retraining pipeline executed successfully.", "success")
+    flash("Model retraining logged successfully.", "success")
     return redirect("/dashboard")
-
 
 @app.route("/feedback/<int:pid>/<string:value>")
 def feedback(pid, value):
