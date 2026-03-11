@@ -1,8 +1,10 @@
 from flask import Flask, render_template, request, redirect, session, Response, flash
 import pickle, json, io, re
 import mysql.connector
+from psycopg2.extras import RealDictCursor
 from scipy.sparse import hstack, csr_matrix
 import pytesseract
+import psycopg2
 from PIL import Image
 import requests
 from flask_mail import Mail, Message
@@ -165,15 +167,16 @@ def github_callback():
 # =============================
 # DATABASE
 # =============================
-def get_db():
-    return mysql.connector.connect(
-        host="shinkansen.proxy.rlwy.net",
-        user="root",
-        password="zTISqMkoDjvgBrLYTqZIwQZKZmoMssqy",
-        database="railway",
-        port=37019
-    )
+import psycopg2
 
+def get_db():
+    return psycopg2.connect(
+        host="dpg-d6of9nsr85hc739dj4hg-a.oregon-postgres.render.com",
+        database="jobcheck_db",
+        user="jobcheck_db_user",
+        password="QDG105ZfZ0wZOCm22O5lu9npxf9r4ovc",
+        port="5432"
+    )
 # =============================
 # ADMIN CHECK
 # =============================
@@ -610,7 +613,7 @@ def dashboard():
         return redirect("/login")
 
     db = get_db()
-    cur = db.cursor(dictionary=True)
+    cur = db.cursor(cursor_factory=RealDictCursor)
 
     # =========================
     # ADMIN / SUPERADMIN DASHBOARD

@@ -122,16 +122,26 @@
     <td class="p-4">{{ u.last_login or "-" }}</td>
     <td class="p-4">{{ u.role }}</td>
     <td class="p-4">
-      {% if u.role == "USER" %}
-        <a href="/admin/promote/{{ u.id }}" class="text-green-400 font-semibold">
-          Promote
-        </a>
-      {% else %}
-        <a href="/admin/demote/{{ u.id }}" class="text-red-400 font-semibold">
-          Demote
-        </a>
-      {% endif %}
-    </td>
+  {% if u.role == "SUPERADMIN" %}
+    <span class="text-slate-400 italic">Not Allowed</span>
+
+  {% elif u.role == "USER" %}
+    <a href="/admin/promote/{{ u.id }}"
+       class="text-green-400 font-semibold hover:underline">
+      Promote
+    </a>
+
+  {% elif u.role == "ADMIN" %}
+    <a href="/admin/demote/{{ u.id }}"
+       class="text-red-400 font-semibold hover:underline">
+      Demote
+    </a>
+
+  {% else %}
+    <span class="text-slate-500">—</span>
+  {% endif %}
+</td>
+
   </tr>
   {% endfor %}
 </table>
