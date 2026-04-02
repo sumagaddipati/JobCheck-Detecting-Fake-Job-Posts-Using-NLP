@@ -535,7 +535,7 @@ def home():
 
     # IMAGE ANALYSIS (DISABLED)
     if request.method == "POST" and "job_image" in request.files:
-        flash("Image analysis is disabled in this deployment.", "error")
+        flash("Image analysis is currently disabled in this live demo due to server resource limitations.", "error")
         return redirect("/")
 
     return render_template(
