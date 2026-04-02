@@ -32,17 +32,29 @@ app.secret_key = "jobshield_secret"
 # GITHUB OAUTH CONFIG
 # =============================
 GITHUB_CLIENT_ID = "Ov23limfP95IMVIikEP9"
-GITHUB_CLIENT_SECRET = "f22e986289f4ec37a7402c0242aa06be547d0ae0"
 
+# =============================
+# GITHUB OAUTH CONFIG
+# =============================
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
+
+# =============================
+# MAIL CONFIG
+# =============================
 app.config.update(
     MAIL_SERVER="smtp.gmail.com",
     MAIL_PORT=587,
     MAIL_USE_TLS=True,
-    MAIL_USERNAME="sumagaddipati@gmail.com",
-    MAIL_PASSWORD="kecf wgcs gmbb vvek"
+    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD")
 )
+
 mail = Mail(app)
 
+# =============================
+# TESSERACT (for Render Linux)
+# =============================
 pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 
 # =============================
