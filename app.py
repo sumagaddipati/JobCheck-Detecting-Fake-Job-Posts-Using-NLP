@@ -492,6 +492,9 @@ def home():
     risk_score = None
     reasons = []
 
+    # 👇 message to show in UI (IMPORTANT)
+    image_disabled_msg = "Image analysis is currently disabled in live demo due to server resource limitations (OCR models require high memory and processing power)."
+
     # TEXT ANALYSIS
     if request.method == "POST" and "job_text" in request.form:
         text = request.form["job_text"].strip()
@@ -530,45 +533,10 @@ def home():
         cur.close()
         db.close()
 
-    # IMAGE ANALYSIS
+    # IMAGE ANALYSIS (DISABLED)
     if request.method == "POST" and "job_image" in request.files:
-        img = request.files["job_image"]
-
-        if img.filename == "":
-            flash("Please choose an image before analyzing.", "error")
-            return redirect("/")
-
-        image = Image.open(io.BytesIO(img.read()))
-        extracted_text = pytesseract.image_to_string(image)
-
-        if not extracted_text.strip():
-            flash("No readable text found in the image.", "error")
-            return redirect("/")
-
-        X = make_feature_vector(extracted_text)
-        lr_pred = logreg.predict(X)[0]
-        result = "FAKE JOB" if lr_pred else "REAL JOB"
-        confidence = float(round(logreg.predict_proba(X)[0][1] * 100, 2))
-
-        explanation = generate_explanation(extracted_text)
-        risk_level = explanation["risk"]
-        risk_score = explanation["score"]
-        reasons = explanation["reasons"]
-
-        db = get_db()
-        cur = db.cursor()
-        cur.execute(
-            """
-            INSERT INTO predictions (user_id, job_text, result, confidence)
-            VALUES (%s, %s, %s, %s)
-            RETURNING id
-            """,
-            (session["user_id"], extracted_text, result, confidence)
-        )
-        prediction_id = cur.fetchone()[0]
-        db.commit()
-        cur.close()
-        db.close()
+        flash("Image analysis is disabled in this deployment.", "error")
+        return redirect("/")
 
     return render_template(
         "home.html",
@@ -580,9 +548,9 @@ def home():
         extracted_text=extracted_text,
         prediction_id=prediction_id,
         role=session["role"],
-        active="analyze"
+        active="analyze",
+        image_disabled_msg=image_disabled_msg   # 👈 pass to UI
     )
-
 
 # =============================
 # DASHBOARD
