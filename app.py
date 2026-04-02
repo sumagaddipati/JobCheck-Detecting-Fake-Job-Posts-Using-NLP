@@ -3,7 +3,6 @@ import pickle, json, io, re
 import psycopg2
 import psycopg2.extras
 from scipy.sparse import hstack, csr_matrix
-import pytesseract
 from PIL import Image
 import requests
 from flask_mail import Mail, Message
@@ -55,7 +54,6 @@ mail = Mail(app)
 # =============================
 # TESSERACT (for Render Linux)
 # =============================
-pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 
 # =============================
 # DATABASE
@@ -479,6 +477,13 @@ def reset_password():
 # =============================
 # HOME / ANALYZE
 # =============================
+import easyocr
+import numpy as np
+
+# Load OCR model once (global)
+reader = easyocr.Reader(['en'], gpu=False)
+
+
 @app.route("/", methods=["GET", "POST"])
 def home():
     if "user_id" not in session:
@@ -492,7 +497,9 @@ def home():
     risk_score = None
     reasons = []
 
+    # =============================
     # TEXT ANALYSIS
+    # =============================
     if request.method == "POST" and "job_text" in request.form:
         text = request.form["job_text"].strip()
 
@@ -530,7 +537,9 @@ def home():
         cur.close()
         db.close()
 
-    # IMAGE ANALYSIS
+    # =============================
+    # IMAGE ANALYSIS (FIXED ✅)
+    # =============================
     if request.method == "POST" and "job_image" in request.files:
         img = request.files["job_image"]
 
@@ -538,14 +547,26 @@ def home():
             flash("Please choose an image before analyzing.", "error")
             return redirect("/")
 
-        image = Image.open(io.BytesIO(img.read()))
-        extracted_text = pytesseract.image_to_string(image)
+        try:
+            image = Image.open(io.BytesIO(img.read())).convert("RGB")
+
+            # Convert image → numpy
+            image_np = np.array(image)
+
+            # OCR using EasyOCR
+            results = reader.readtext(image_np)
+            extracted_text = " ".join([res[1] for res in results])
+
+        except Exception as e:
+            flash(f"Image processing failed: {str(e)}", "error")
+            return redirect("/")
 
         if not extracted_text.strip():
             flash("No readable text found in the image.", "error")
             return redirect("/")
 
         X = make_feature_vector(extracted_text)
+
         lr_pred = logreg.predict(X)[0]
         result = "FAKE JOB" if lr_pred else "REAL JOB"
         confidence = float(round(logreg.predict_proba(X)[0][1] * 100, 2))
@@ -582,8 +603,6 @@ def home():
         role=session["role"],
         active="analyze"
     )
-
-
 # =============================
 # DASHBOARD
 # =============================
